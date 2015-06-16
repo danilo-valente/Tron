@@ -693,7 +693,8 @@
             module.exports = {
                 Expression: Expression,
                 Scheduler: Scheduler,
-                version: '0.1.0'
+                version: '0.1.1',
+                parse: Expression.parse
             };
         },
         {
