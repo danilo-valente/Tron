@@ -1,5 +1,5 @@
 {
-  "name": "Tron",
+  "name": "tron",
   "version": "0.1.0",
   "description": "A JavaScript Cron expression builder and parser for both Node.js and browser",
   "main": "index.js",
