@@ -7,14 +7,14 @@ describe('Expression', function () {
     describe('.parse', function () {
 
         it('should parse a "secondly" cron correctly', function () {
-            var expr = Expression.parse('* * * * * *');
+            var expr = Expression.parse('* * * * * ?');
 
             expect(expr.seconds).toEqual(range(0, 59));
             expect(expr.minutes).toEqual(range(0, 59));
             expect(expr.hours).toEqual(range(0, 23));
             expect(expr.daysOfMonth).toEqual(range(31));
             expect(expr.months).toEqual(range(12));
-            expect(expr.daysOfWeek).toEqual(range(0, 7));
+            expect(expr.daysOfWeek).toEqual(null);
         });
 
         it('should parse a "minutely" cron correctly', function () {
@@ -27,8 +27,6 @@ describe('Expression', function () {
             expect(expr.months).toEqual(range(12));
             expect(expr.daysOfWeek).toEqual(null);
         });
-
-        // 0 0,1/25 * 1/1 * ?
 
         it('should parse a daily cron correctly', function () {
             var expr = Expression.parse('0 0 12 1/1 * ?');
@@ -50,6 +48,12 @@ describe('Expression', function () {
             expect(expr.daysOfMonth).toEqual(null);
             expect(expr.months).toEqual(range(12));
             expect(expr.daysOfWeek).toEqual(range(1, 5));
+        });
+
+        it('should fail to parse "* * * * * *"', function () {
+            var fn = Expression.parse.bind(Expression, '* * * * * *');
+
+            expect(fn).toThrow();
         });
     });
 
@@ -84,9 +88,8 @@ describe('Expression', function () {
     describe('#next', function () {
 
         it('should work with a "secondly" cron', function () {
-            var expr = Expression.parse('* * * * * *');
+            var expr = Expression.parse('* * * * * ?');
             var startDate = new Date(2015, 0, 1);   // Jan 01 2015 00:00:00
-            console.log();
 
             var first = expr.next(startDate);
             expect(first).toEqual(new Date(2015, 0, 1, 0, 0, 1));  // Jan 01 2015 12:00:01
@@ -96,7 +99,7 @@ describe('Expression', function () {
         });
 
         it('should shift a minute with a "secondly" cron starting at 0:0:59', function () {
-            var expr = Expression.parse('* * * * * *');
+            var expr = Expression.parse('* * * * * ?');
             var startDate = new Date(2015, 0, 1, 0, 0, 59); // Jan 01 2015 00:00:59
 
             var first = expr.next(startDate);
@@ -241,8 +244,59 @@ describe('Expression', function () {
         });
     });
 
+    describe('#toString', function () {
+
+        it('should stringify the default expression', function () {
+            var expr = defaultExpression();
+
+            expect(expr.toString()).toEqual('* * * * * ?');
+        });
+
+        it('should stringify an expression after an .at("seconds", 5) call', function () {
+            var expr = defaultExpression();
+            expr.at('seconds', 5);
+
+            expect(expr.toString()).toEqual('5 * * * * ?');
+        });
+
+        it('should stringify an expression after a .range("minutes", 1, 3) call', function () {
+            var expr = defaultExpression();
+            expr.range('minutes', 1, 3);
+
+            expect(expr.toString()).toEqual('* 1,2,3 * * * ?');
+        });
+
+        it('should stringify an expression after a .repeat("hours", 5, 7) call', function () {
+            var expr = defaultExpression();
+            expr.repeat('hours', 5, 7);
+
+            expect(expr.toString()).toEqual('* * 5,12,19 * * ?');
+        });
+
+        it('should stringify an expression after a .and("daysOfMonth", [7, 18, 30, 23]) call', function () {
+            var expr = defaultExpression();
+            expr.and('daysOfMonth', [7, 18, 30, 23]);
+
+            expect(expr.toString()).toEqual('* * * 7,18,23,30 * ?');
+        });
+
+        it('should stringify an expression after a .set("months", "JAN,JUN-AUG,NOV") call', function () {
+            var expr = defaultExpression();
+            expr.set('months', 'JAN,JUN-AUG,NOV');
+
+            expect(expr.toString()).toEqual('* * * * 1,6,7,8,11 ?');
+        });
+
+        it('should stringify an expression after a .every("daysOfWeek") call', function () {
+            var expr = defaultExpression();
+            expr.every('daysOfWeek');
+
+            expect(expr.toString()).toEqual('* * * ? * *');
+        });
+    });
+
     function defaultExpression() {
-        return Expression.parse('* * * * * *');
+        return Expression.parse('* * * * * ?');
     }
 
 });

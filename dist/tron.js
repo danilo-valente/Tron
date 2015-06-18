@@ -321,9 +321,9 @@
                     var daysOfMonthMatch = _matchSchedule(currentDate.getDate(), daysOfMonth);
                     var daysOfWeekMatch = _matchSchedule(currentDate.getDay(), daysOfWeek);
 
-                    var isDayOfMonthWildcardMatch = _isWildcardRange(daysOfMonth, dayOfMonthConstraints[0], dayOfMonthConstraints[1]);
-                    var isMonthWildcardMatch = _isWildcardRange(daysOfWeek, monthConstraints[0], monthConstraints[1]);
-                    var isDayOfWeekWildcardMatch = _isWildcardRange(daysOfWeek, dayOfWeekConstraints[0], dayOfWeekConstraints[1]);
+                    var isDayOfMonthWildcardMatch = _isWildcard(daysOfMonth, dayOfMonthConstraints[0], dayOfMonthConstraints[1]);
+                    var isMonthWildcardMatch = _isWildcard(daysOfWeek, monthConstraints[0], monthConstraints[1]);
+                    var isDayOfWeekWildcardMatch = _isWildcard(daysOfWeek, dayOfWeekConstraints[0], dayOfWeekConstraints[1]);
 
                     // Validate days in months if explicit value is given
                     if (!isMonthWildcardMatch) {
@@ -401,6 +401,11 @@
                 return !!this.next(startDate);
             };
 
+            Expression.prototype.toString = function () {
+
+                return _fieldToString('seconds', this.seconds) + ' ' + _fieldToString('minutes', this.minutes) + ' ' + _fieldToString('hours', this.hours) + ' ' + _fieldToString('daysOfMonth', this.daysOfMonth) + ' ' + _fieldToString('months', this.months) + ' ' + _fieldToString('daysOfWeek', this.daysOfWeek);
+            };
+
             /**
              * Parse input expression
              *
@@ -424,6 +429,9 @@
                     var constraints = CONSTRAINTS[field];
                     return parser.parseField(field, value, constraints[0], constraints[1], ALIASES[field]);
                 });
+
+                assert(fields[3] || fields[5], 'Must specify either daysOfMonth or daysOfWeek');
+                assert((fields[3] && !fields[5]) || (!fields[3] && fields[5]), 'Cannot specify both daysOfMonth and daysOfWeek');
 
                 return new Expression(fields);
             };
@@ -480,16 +488,40 @@
             }
 
             /**
-             * Detect if input range fully matches constraint bounds
-             * @param {Array} valuesRange Input range
-             * @param {number} min
-             * @param {number} max
+             * Stringify field
+             * @param {String} field
+             * @param {Array.<number>} values
+             * @returns {String}
+             * @private
+             */
+
+            function _fieldToString(field, values) {
+                var constraints = CONSTRAINTS[field];
+                var minValue = constraints[0];
+                var maxValue = constraints[1];
+
+                if (!values) {
+                    return '?';
+                }
+
+                if (_isWildcard(values, minValue, maxValue)) {
+                    return '*';
+                }
+
+                return values.join(',');
+            }
+
+            /**
+             * Detect if values array fully matches constraint bounds
+             * @param {Array} values Input range
+             * @param {number} minValue
+             * @param {number} maxValue
              * @returns {Boolean}
              * @private
              */
 
-            function _isWildcardRange(valuesRange, min, max) {
-                return valuesRange.length > 0 && valuesRange.length === max + (min < 1 ? 1 : 0);
+            function _isWildcard(values, minValue, maxValue) {
+                return values.length > 0 && values.length === maxValue + (minValue < 1 ? 1 : 0);
             }
         },
         {
@@ -693,7 +725,7 @@
             module.exports = {
                 Expression: Expression,
                 Scheduler: Scheduler,
-                version: '0.1.1',
+                version: '0.2.0',
                 parse: Expression.parse
             };
         },
