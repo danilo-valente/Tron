@@ -295,6 +295,59 @@ describe('Expression', function () {
         });
     });
 
+    describe('#toString', function () {
+
+        it('should stringify default expression\'s field "seconds"', function () {
+            var expr = defaultExpression();
+
+            expect(expr.fieldToString('daysOfMonth')).toEqual('*');
+            expect(expr.fieldToString('daysOfWeek')).toEqual('?');
+        });
+
+        it('should stringify "seconds" after an .at("seconds", 5) call', function () {
+            var expr = defaultExpression();
+            expr.at('seconds', 5);
+
+            expect(expr.fieldToString('seconds')).toEqual('5');
+        });
+
+        it('should stringify "minutes" after a .range("minutes", 1, 3) call', function () {
+            var expr = defaultExpression();
+            expr.range('minutes', 1, 3);
+
+            expect(expr.fieldToString('minutes')).toEqual('1,2,3');
+        });
+
+        it('should stringify "hours" after a .repeat("hours", 5, 7) call', function () {
+            var expr = defaultExpression();
+            expr.repeat('hours', 5, 7);
+
+            expect(expr.toString()).toEqual('* * 5,12,19 * * ?');
+        });
+
+        it('should stringify "daysOfMonth" after a .and("daysOfMonth", [7, 18, 30, 23]) call', function () {
+            var expr = defaultExpression();
+            expr.and('daysOfMonth', [7, 18, 30, 23]);
+
+            expect(expr.fieldToString('daysOfMonth')).toEqual('7,18,23,30');
+        });
+
+        it('should stringify "months" after a .set("months", "JAN,JUN-AUG,NOV") call', function () {
+            var expr = defaultExpression();
+            expr.set('months', 'JAN,JUN-AUG,NOV');
+
+            expect(expr.fieldToString('months')).toEqual('1,6,7,8,11');
+        });
+
+        it('should stringify "daysOfWeek" after a .every("daysOfWeek") call', function () {
+            var expr = defaultExpression();
+            expr.every('daysOfWeek');
+
+            expect(expr.fieldToString('daysOfMonth')).toEqual('?');
+            expect(expr.fieldToString('daysOfWeek')).toEqual('*');
+        });
+    });
+
     function defaultExpression() {
         return Expression.parse('* * * * * ?');
     }

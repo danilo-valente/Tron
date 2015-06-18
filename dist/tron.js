@@ -401,9 +401,23 @@
                 return !!this.next(startDate);
             };
 
+            /**
+             * String representation of the expression
+             * @returns {String}
+             */
             Expression.prototype.toString = function () {
 
                 return _fieldToString('seconds', this.seconds) + ' ' + _fieldToString('minutes', this.minutes) + ' ' + _fieldToString('hours', this.hours) + ' ' + _fieldToString('daysOfMonth', this.daysOfMonth) + ' ' + _fieldToString('months', this.months) + ' ' + _fieldToString('daysOfWeek', this.daysOfWeek);
+            };
+
+            /**
+             * String representation of a field
+             * @returns {String}
+             */
+            Expression.prototype.fieldToString = function (field) {
+                _validateField(field);
+
+                return _fieldToString(field, this[field]);
             };
 
             /**
@@ -411,6 +425,7 @@
              *
              * @public
              * @param {String} expression Input expression
+             * @returns {Expression}
              */
             Expression.parse = function (expression) {
                 // Is input expression predefined?
