@@ -289,7 +289,7 @@
              * @return {Date} The next future date
              */
             Expression.prototype.next = function (currentDate, endDate) { /** @type XDate */
-                currentDate = new XDate(currentDate); /** @type XDate */
+                currentDate = new XDate(currentDate !== undefined ? currentDate : new Date()); /** @type XDate */
                 endDate = endDate ? new XDate(endDate) : null;
 
                 currentDate.addSecond();
@@ -538,6 +538,7 @@
             function _isWildcard(values, minValue, maxValue) {
                 return values.length > 0 && values.length === maxValue + (minValue < 1 ? 1 : 0);
             }
+
         },
         {
             "./Set": 4,
@@ -740,7 +741,7 @@
             module.exports = {
                 Expression: Expression,
                 Scheduler: Scheduler,
-                version: '0.2.0',
+                version: '0.2.1',
                 parse: Expression.parse
             };
         },
