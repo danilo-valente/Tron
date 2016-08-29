@@ -329,13 +329,13 @@
                     if (!isMonthWildcardMatch) {
                         var currentYear = currentDate.getFullYear();
                         var currentMonth = currentDate.getMonth() + 1;
-                        var previousMonth = currentMonth === 1 ? 11 : currentMonth - 1;
+                        var previousMonth = currentMonth === 1 ? 12 : currentMonth - 1;
                         var daysInPreviousMonth = DAYS_IN_MONTH[previousMonth - 1];
                         var daysOfMonthRangeMax = daysOfMonth[daysOfMonth.length - 1];
 
                         // Handle leap year
                         var isLeap = currentYear % 4 === 0 && (currentYear % 100 !== 0 || currentYear % 400 === 0);
-                        if (isLeap) {
+                        if (isLeap && previousMonth === 2) {
                             daysInPreviousMonth = 29;
                         }
 
@@ -741,7 +741,7 @@
             module.exports = {
                 Expression: Expression,
                 Scheduler: Scheduler,
-                version: '0.2.1',
+                version: '0.2.4',
                 parse: Expression.parse
             };
         },
@@ -1750,12 +1750,83 @@
         11: [function (require, module, exports) {
             // shim for using process in browser
             var process = module.exports = {};
+
+            // cached from whatever global is present so that test runners that stub it
+            // don't break things.  But we need to wrap it in a try catch in case it is
+            // wrapped in strict mode code which doesn't define any globals.  It's inside a
+            // function because try/catches deoptimize in certain engines.
+            var cachedSetTimeout;
+            var cachedClearTimeout;
+
+            (function () {
+                try {
+                    cachedSetTimeout = setTimeout;
+                } catch (e) {
+                    cachedSetTimeout = function () {
+                        throw new Error('setTimeout is not defined');
+                    }
+                }
+                try {
+                    cachedClearTimeout = clearTimeout;
+                } catch (e) {
+                    cachedClearTimeout = function () {
+                        throw new Error('clearTimeout is not defined');
+                    }
+                }
+            }())
+
+            function runTimeout(fun) {
+                if (cachedSetTimeout === setTimeout) {
+                    //normal enviroments in sane situations
+                    return setTimeout(fun, 0);
+                }
+                try {
+                    // when when somebody has screwed with setTimeout but no I.E. maddness
+                    return cachedSetTimeout(fun, 0);
+                } catch (e) {
+                    try {
+                        // When we are in I.E. but the script has been evaled so I.E. doesn't trust the global object when called normally
+                        return cachedSetTimeout.call(null, fun, 0);
+                    } catch (e) {
+                        // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error
+                        return cachedSetTimeout.call(this, fun, 0);
+                    }
+                }
+
+
+            }
+
+            function runClearTimeout(marker) {
+                if (cachedClearTimeout === clearTimeout) {
+                    //normal enviroments in sane situations
+                    return clearTimeout(marker);
+                }
+                try {
+                    // when when somebody has screwed with setTimeout but no I.E. maddness
+                    return cachedClearTimeout(marker);
+                } catch (e) {
+                    try {
+                        // When we are in I.E. but the script has been evaled so I.E. doesn't  trust the global object when called normally
+                        return cachedClearTimeout.call(null, marker);
+                    } catch (e) {
+                        // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error.
+                        // Some versions of I.E. have different rules for clearTimeout vs setTimeout
+                        return cachedClearTimeout.call(this, marker);
+                    }
+                }
+
+
+
+            }
             var queue = [];
             var draining = false;
             var currentQueue;
             var queueIndex = -1;
 
             function cleanUpNextTick() {
+                if (!draining || !currentQueue) {
+                    return;
+                }
                 draining = false;
                 if (currentQueue.length) {
                     queue = currentQueue.concat(queue);
@@ -1771,7 +1842,7 @@
                 if (draining) {
                     return;
                 }
-                var timeout = setTimeout(cleanUpNextTick);
+                var timeout = runTimeout(cleanUpNextTick);
                 draining = true;
 
                 var len = queue.length;
@@ -1779,14 +1850,16 @@
                     currentQueue = queue;
                     queue = [];
                     while (++queueIndex < len) {
-                        currentQueue[queueIndex].run();
+                        if (currentQueue) {
+                            currentQueue[queueIndex].run();
+                        }
                     }
                     queueIndex = -1;
                     len = queue.length;
                 }
                 currentQueue = null;
                 draining = false;
-                clearTimeout(timeout);
+                runClearTimeout(timeout);
             }
 
             process.nextTick = function (fun) {
@@ -1798,7 +1871,7 @@
                 }
                 queue.push(new Item(fun, args));
                 if (queue.length === 1 && !draining) {
-                    setTimeout(drainQueue, 0);
+                    runTimeout(drainQueue);
                 }
             };
 
@@ -1833,7 +1906,6 @@
                 throw new Error('process.binding is not supported');
             };
 
-            // TODO(shtylman)
             process.cwd = function () {
                 return '/'
             };
